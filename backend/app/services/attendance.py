@@ -130,7 +130,7 @@ def do_check_in(db: Session, employee: Employee, method: str, score: float | Non
                 at: datetime | None = None, notes: str | None = None, marked_by: int | None = None) -> AttendanceRecord:
     if employee.status == "inactive":
         raise HTTPException(400, "Inactive employees cannot mark attendance")
-    now = at or utcnow()
+    now = (at or utcnow()).replace(microsecond=0)  # MySQL DATETIME has second precision
     work_date = utc_to_local(now, company_tz(db)).date()
     rec = db.scalar(select(AttendanceRecord).where(AttendanceRecord.employee_id == employee.id,
                                                    AttendanceRecord.work_date == work_date).with_for_update())
@@ -151,7 +151,7 @@ def do_check_in(db: Session, employee: Employee, method: str, score: float | Non
 
 def do_check_out(db: Session, employee: Employee, method: str, score: float | None = None,
                  at: datetime | None = None) -> AttendanceRecord:
-    now = at or utcnow()
+    now = (at or utcnow()).replace(microsecond=0)  # MySQL DATETIME has second precision
     tz = company_tz(db)
     work_date = utc_to_local(now, tz).date()
     rec = db.scalar(select(AttendanceRecord).where(AttendanceRecord.employee_id == employee.id,
@@ -164,7 +164,7 @@ def do_check_out(db: Session, employee: Employee, method: str, score: float | No
         raise HTTPException(409, "You have not checked in today")
     if rec.check_out_at:
         raise HTTPException(409, "You have already checked out today")
-    if now <= rec.check_in_at:
+    if now < rec.check_in_at:
         raise HTTPException(400, "Check-out time must be after check-in time")
     for b in rec.breaks:
         if b.end_at is None:

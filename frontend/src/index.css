@@ -29,6 +29,11 @@
   --danger-soft: 253 232 234;
   --info: 17 151 161;
   --info-soft: 225 243 245;
+  /* validated chart palette (dataviz validator: light) */
+  --chart-1: #0E9F8A;
+  --chart-2: #5B5BD6;
+  --chart-grid: #E6EAED;
+  --chart-axis: #8A98A2;
   color-scheme: light;
 }
 
@@ -54,6 +59,11 @@
   --danger-soft: 56 20 26;
   --info: 52 190 201;
   --info-soft: 10 42 48;
+  /* validated chart palette (dataviz validator: dark) */
+  --chart-1: #0FA48E;
+  --chart-2: #7474E4;
+  --chart-grid: #1E2C35;
+  --chart-axis: #6F8792;
   color-scheme: dark;
 }
 

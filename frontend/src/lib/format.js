@@ -42,3 +42,6 @@ export const initials = (name = '') => name.split(/\s+/).filter(Boolean).slice(0
 
 export const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September',
   'October', 'November', 'December']
+
+export const fmtCompactMoney = (v, currency = 'INR') =>
+  new Intl.NumberFormat('en-IN', { style: 'currency', currency, notation: 'compact', maximumFractionDigits: 1 }).format(Number(v) || 0)

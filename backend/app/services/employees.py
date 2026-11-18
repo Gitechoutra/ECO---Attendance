@@ -46,7 +46,7 @@ def employee_brief(e: Employee | None) -> dict | None:
 def serialize_employee(e: Employee, sensitive: bool = False, include_private: bool = True) -> dict:
     data = {
         "id": e.id, "employee_code": e.employee_code, "first_name": e.first_name, "last_name": e.last_name,
-        "full_name": e.full_name, "email": e.email, "phone": e.phone,
+        "full_name": e.full_name, "email": e.email,
         "department": {"id": e.department.id, "name": e.department.name} if e.department else None,
         "designation": {"id": e.designation.id, "title": e.designation.title} if e.designation else None,
         "department_id": e.department_id, "designation_id": e.designation_id,
@@ -57,7 +57,7 @@ def serialize_employee(e: Employee, sensitive: bool = False, include_private: bo
     }
     if include_private:
         data.update({
-            "personal_email": e.personal_email, "date_of_birth": e.date_of_birth, "gender": e.gender,
+            "phone": e.phone, "personal_email": e.personal_email, "date_of_birth": e.date_of_birth, "gender": e.gender,
             "marital_status": e.marital_status, "blood_group": e.blood_group, "address": e.address,
             "city": e.city, "state": e.state, "country": e.country, "postal_code": e.postal_code,
             "emergency_contact_name": e.emergency_contact_name,

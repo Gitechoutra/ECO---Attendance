@@ -1,0 +1,48 @@
+# Production-style stack. MySQL runs in a container here; to use an existing MySQL server instead,
+# remove the `db` service and point DB_HOST in backend/.env at your server.
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: echo_attend
+      MYSQL_USER: ${DB_USER:-echo_app}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD}
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes: [db_data:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: ./backend/.env
+    environment:
+      DB_HOST: db
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: production
+    depends_on:
+      db: { condition: service_healthy }
+    volumes:
+      - storage:/app/storage
+      - backups:/app/backups
+      - models:/app/ml_models
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports: ["80:80"]
+    depends_on: [backend]
+
+volumes:
+  db_data:
+  storage:
+  backups:
+  models:

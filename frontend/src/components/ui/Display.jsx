@@ -79,7 +79,7 @@ export function Avatar({ name = '', fileId, size = 'md', className }) {
   )
 }
 
-export function PersonCell({ name, subtitle, fileId, size = 'sm', to, onClick }) {
+export function PersonCell({ name, subtitle, fileId, size = 'sm', onClick }) {
   const body = (
     <span className="flex min-w-0 items-center gap-2.5">
       <Avatar name={name} fileId={fileId} size={size} />
@@ -148,7 +148,7 @@ export function StatCard({ label, value, hint, icon: Icon, tone = 'brand', loadi
   const Tag = onClick ? 'button' : 'div'
   return (
     <Tag onClick={onClick} className={clsx('card flex flex-col p-4 text-left', onClick && 'transition-colors hover:border-line-strong')}>
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex min-h-8 items-center justify-between gap-2">
         <span className="text-[13px] font-medium text-muted">{label}</span>
         {Icon && <span className={clsx('flex h-8 w-8 items-center justify-center rounded-lg', iconTone)}><Icon className="h-4 w-4" /></span>}
       </div>

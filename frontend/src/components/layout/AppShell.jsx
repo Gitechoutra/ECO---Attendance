@@ -20,7 +20,7 @@ function SidebarContent({ collapsed, onNavigate }) {
   return (
     <nav className="nav-scroll flex-1 overflow-y-auto px-3 pb-6">
       {sections.map((s) => (
-        <div key={s.section} className="mt-5 first:mt-2">
+        <div key={s.section} className="mt-4 first:mt-1">
           {!collapsed && <p className="mb-1.5 px-3 text-2xs font-semibold uppercase tracking-[0.12em] text-[#5D7380]">{s.section}</p>}
           <ul className="space-y-0.5">
             {s.items.map((i) => (
@@ -31,7 +31,7 @@ function SidebarContent({ collapsed, onNavigate }) {
                   onClick={onNavigate}
                   title={collapsed ? i.label : undefined}
                   className={({ isActive }) => clsx(
-                    'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium transition-colors',
+                    'group relative flex items-center gap-3 rounded-lg px-3 py-[7px] text-[13.5px] font-medium transition-colors',
                     collapsed && 'justify-center px-0',
                     isActive ? 'bg-[#0F2A2C] text-white' : 'text-[#A9BAC4] hover:bg-night-3 hover:text-white',
                   )}
@@ -199,7 +199,7 @@ export default function AppShell() {
       {mobileOpen && (
         <div className="fixed inset-0 z-[60] lg:hidden">
           <div className="absolute inset-0 animate-fade-in bg-night/60" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 flex w-[82%] max-w-[300px] animate-fade-up flex-col bg-night">
+          <aside className="absolute inset-y-0 left-0 flex w-[82%] max-w-[300px] animate-slide-in-left flex-col bg-night shadow-pop">
             <div className="flex items-center justify-between pr-3">
               <Brand />
               <button onClick={() => setMobileOpen(false)} className="rounded-lg p-2 text-[#A9BAC4] hover:text-white" aria-label="Close menu"><X className="h-5 w-5" /></button>

@@ -1,6 +1,30 @@
 import { useEffect, useState } from 'react'
 import { Button } from './Button'
 import { Checkbox, Field, Input, Select, Textarea } from './Form'
+
+/** Searchable checklist used by the 'multiselect' field type. */
+function MultiSelect({ options, value, onChange }) {
+  const [q, setQ] = useState('')
+  const sel = new Set(value)
+  const list = options.filter((o) => o.label.toLowerCase().includes(q.toLowerCase())).slice(0, 100)
+  return (
+    <div className="rounded-lg border border-line-strong">
+      <div className="flex items-center gap-2 border-b border-line p-2">
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" className="h-8 flex-1 bg-transparent px-1 text-sm outline-none placeholder:text-faint" />
+        <span className="num text-xs text-muted">{value.length} selected</span>
+      </div>
+      <div className="scrollbar-thin max-h-48 overflow-y-auto p-1">
+        {list.map((o) => (
+          <label key={o.value} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] hover:bg-surface-2">
+            <input type="checkbox" checked={sel.has(o.value)} onChange={() => onChange(sel.has(o.value) ? value.filter((x) => x !== o.value) : [...value, o.value])} className="accent-[rgb(var(--brand-strong))]" />
+            {o.label}
+          </label>
+        ))}
+        {!list.length && <p className="px-2 py-3 text-xs text-muted">No matches</p>}
+      </div>
+    </div>
+  )
+}
 import { Modal } from './Overlay'
 import { errorMessage } from '../../api/client'
 
@@ -20,7 +44,7 @@ export function FormModal({ open, onClose, title, description, fields, initial, 
     const v = {}
     fields.forEach((f) => {
       const raw = initial?.[f.name]
-      v[f.name] = raw ?? f.default ?? (f.type === 'checkbox' ? false : '')
+      v[f.name] = raw ?? f.default ?? (f.type === 'checkbox' ? false : f.type === 'multiselect' ? [] : '')
     })
     setValues(v)
     setErrors({})
@@ -92,7 +116,8 @@ export function FormModal({ open, onClose, title, description, fields, initial, 
             )
           }
           let control
-          if (f.type === 'textarea') control = <Textarea {...common} rows={f.rows || 3} onChange={(e) => set(f.name, e.target.value)} />
+          if (f.type === 'multiselect') control = <MultiSelect options={f.options || []} value={values[f.name] || []} onChange={(v) => set(f.name, v)} />
+          else if (f.type === 'textarea') control = <Textarea {...common} rows={f.rows || 3} onChange={(e) => set(f.name, e.target.value)} />
           else if (f.type === 'select') control = <Select {...common} placeholder={f.placeholder ?? 'Select…'} options={f.options} onChange={(e) => set(f.name, e.target.value)} />
           else control = <Input {...common} type={f.type || 'text'} min={f.min} max={f.max} step={f.step} onChange={(e) => set(f.name, e.target.value)} />
           return (

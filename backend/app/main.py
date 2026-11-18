@@ -23,6 +23,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 async def lifespan(app: FastAPI):
     from app.services.bootstrap import seed_reference_data
 
+    if settings.is_production:
+        weak = [k for k in ("SECRET_KEY", "BIOMETRIC_ENCRYPTION_KEY", "DATA_ENCRYPTION_KEY")
+                if not getattr(settings, k) or getattr(settings, k) == "change-me"]
+        if weak or len(settings.SECRET_KEY) < 32:
+            raise RuntimeError(f"Refusing to start in production with missing/weak secrets: {weak or ['SECRET_KEY']}")
     try:
         with SessionLocal() as db:
             seed_reference_data(db)
