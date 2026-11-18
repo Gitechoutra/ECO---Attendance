@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------------------------------------------------------------------------
+   ECHOUTRA ONE design tokens (RGB triplets so Tailwind alpha modifiers work).
+   Brand palette sampled from the ECHOUTRA logo:
+     ink #050B0F · teal #00BEA3 · cyan #01D9D1 · deep teal #1197A1
+--------------------------------------------------------------------------- */
+:root {
+  --canvas: 245 247 248;
+  --surface: 255 255 255;
+  --surface-2: 249 250 251;
+  --line: 230 234 237;
+  --line-strong: 211 217 222;
+  --ink: 11 20 26;
+  --ink-2: 44 56 64;
+  --muted: 98 112 122;
+  --faint: 148 160 169;
+  --brand: 0 190 163;
+  --brand-strong: 0 160 138;
+  --brand-soft: 224 247 242;
+  --brand-ink: 6 118 108;
+  --success: 22 163 74;
+  --success-soft: 228 246 234;
+  --warning: 202 128 4;
+  --warning-soft: 253 243 220;
+  --danger: 220 53 69;
+  --danger-soft: 253 232 234;
+  --info: 17 151 161;
+  --info-soft: 225 243 245;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --canvas: 7 13 17;
+  --surface: 13 22 28;
+  --surface-2: 17 28 35;
+  --line: 30 44 53;
+  --line-strong: 44 62 73;
+  --ink: 232 238 241;
+  --ink-2: 196 207 213;
+  --muted: 139 155 165;
+  --faint: 98 114 124;
+  --brand: 0 199 171;
+  --brand-strong: 1 217 209;
+  --brand-soft: 7 46 44;
+  --brand-ink: 64 220 196;
+  --success: 52 199 112;
+  --success-soft: 13 45 29;
+  --warning: 234 170 50;
+  --warning-soft: 50 38 12;
+  --danger: 245 94 108;
+  --danger-soft: 56 20 26;
+  --info: 52 190 201;
+  --info-soft: 10 42 48;
+  color-scheme: dark;
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-canvas text-ink font-sans antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  h1, h2, h3, h4 { @apply tracking-tight text-ink; }
+  ::selection { background: rgb(var(--brand) / 0.25); }
+  :focus-visible { outline: none; box-shadow: 0 0 0 3px rgb(var(--brand) / 0.35); border-radius: 6px; }
+  input[type='date']::-webkit-calendar-picker-indicator,
+  input[type='time']::-webkit-calendar-picker-indicator { opacity: .55; cursor: pointer; }
+  :root[data-theme='dark'] input[type='date']::-webkit-calendar-picker-indicator,
+  :root[data-theme='dark'] input[type='time']::-webkit-calendar-picker-indicator,
+  :root[data-theme='dark'] input[type='month']::-webkit-calendar-picker-indicator { filter: invert(1); }
+}
+
+@layer components {
+  .card { @apply bg-surface border border-line rounded-xl shadow-card; }
+  .num { font-variant-numeric: tabular-nums; }
+  .label { @apply block text-[13px] font-medium text-ink-2 mb-1.5; }
+  .input {
+    @apply w-full h-10 rounded-lg border border-line-strong bg-surface px-3 text-sm text-ink placeholder:text-faint
+      transition-[border-color,box-shadow] duration-150 hover:border-faint
+      focus:border-brand focus:shadow-focus focus:outline-none disabled:bg-surface-2 disabled:text-muted;
+  }
+  textarea.input { @apply h-auto py-2.5 leading-relaxed; }
+  .input-error { @apply border-danger focus:border-danger; box-shadow: none; }
+  .link { @apply text-brand-ink font-medium hover:underline underline-offset-2; }
+  .scrollbar-thin { scrollbar-width: thin; scrollbar-color: rgb(var(--line-strong)) transparent; }
+  .nav-scroll { scrollbar-width: thin; scrollbar-color: #1A2C36 transparent; }
+  .skeleton { @apply relative overflow-hidden rounded-md bg-line/70; }
+  .skeleton::after {
+    content: ''; position: absolute; inset: 0; transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgb(var(--surface) / .6), transparent);
+    animation: shimmer 1.3s infinite;
+  }
+  @keyframes shimmer { 100% { transform: translateX(100%); } }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}

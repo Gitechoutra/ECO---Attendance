@@ -17,3 +17,4 @@ frontend/dev-dist/
 coverage/
 *.log
 .superadmin-initial-password.txt
+.pytest_storage/

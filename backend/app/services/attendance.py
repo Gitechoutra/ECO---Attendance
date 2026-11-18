@@ -236,6 +236,10 @@ def month_bounds(year: int, month: int) -> tuple[date, date]:
 
 def monthly_summary(db: Session, employee_ids: list[int] | None, year: int, month: int) -> list[dict]:
     start, end = month_bounds(year, month)
+    return range_summary(db, employee_ids, start, end)
+
+
+def range_summary(db: Session, employee_ids: list[int] | None, start: date, end: date) -> list[dict]:
     today = local_today(db)
     eff_end = min(end, today)
     wdays = working_days_in_range(db, start, eff_end) if eff_end >= start else []

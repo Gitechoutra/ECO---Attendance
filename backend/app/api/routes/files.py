@@ -44,7 +44,7 @@ def can_access(db: Session, current: CurrentUser, f: StoredFile) -> bool:
         if "offers.manage" in p or "offers.approve" in p:
             return True
         return bool(offer and offer.employee_id and offer.employee_id == current.employee_id
-                    and offer.status in ("sent", "accepted", "declined"))
+                    and offer.status in ("approved", "sent", "accepted", "declined"))
     if et == "expense":
         e = db.get(Expense, eid)
         return bool(e) and (e.employee_id == current.employee_id or "expenses.view_all" in p

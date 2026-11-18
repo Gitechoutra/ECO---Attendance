@@ -143,6 +143,7 @@ def allocate_leave_balances(db: Session, emp: Employee, year: int | None = None)
             months_left = 12 - emp.joining_date.month + 1
             quota = round(quota * months_left / 12 * 2) / 2  # nearest half day
         db.add(LeaveBalance(employee_id=emp.id, leave_type_id=lt.id, year=year, allocated=quota))
+    db.flush()
 
 
 def add_history(db: Session, emp_id: int, event: str, description: str, changes: dict | None, user: User | None):

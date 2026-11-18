@@ -102,6 +102,11 @@ async def integrity_error(request: Request, exc: IntegrityError):
 
 @app.exception_handler(OperationalError)
 async def db_down(request: Request, exc: OperationalError):
+    code = exc.orig.args[0] if getattr(exc.orig, "args", None) else None
+    if code in (1205, 1213):  # lock wait timeout / deadlock from a concurrent request
+        log.warning("Concurrent update conflict on %s: %s", request.url.path, exc.orig)
+        return JSONResponse({"detail": "This record was being updated at the same time. Please try again."},
+                            status_code=409)
     log.error("Database error: %s", exc.orig)
     return JSONResponse({"detail": "The database is temporarily unavailable. Please try again."}, status_code=503)
 
