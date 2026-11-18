@@ -1,0 +1,19 @@
+# secrets
+.env
+*.env.local
+# python
+__pycache__/
+*.pyc
+backend/.venv/
+.pytest_cache/
+# runtime data
+backend/storage/
+backend/backups/
+backend/ml_models/*.onnx
+# node
+node_modules/
+frontend/dist/
+frontend/dev-dist/
+coverage/
+*.log
+.superadmin-initial-password.txt
