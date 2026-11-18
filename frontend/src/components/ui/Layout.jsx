@@ -33,7 +33,7 @@ export function PageHeader({ title, description, actions, breadcrumbs, children 
 
 export function Tabs({ tabs, value, onChange, className }) {
   return (
-    <div className={clsx('scrollbar-thin -mx-1 flex gap-1 overflow-x-auto border-b border-line px-1', className)} role="tablist">
+    <div className={clsx('scrollbar-thin -mx-1 flex gap-1 overflow-x-auto overflow-y-hidden border-b border-line px-1', className)} role="tablist">
       {tabs.filter((t) => !t.hidden).map((t) => (
         <button
           key={t.value}

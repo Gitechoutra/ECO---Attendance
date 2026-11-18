@@ -58,11 +58,12 @@ def today(current: CurrentUser = Depends(require_employee), db: Session = Depend
 def challenge(request: Request, body: ChallengeIn, current: CurrentUser = Depends(get_current),
               db: Session = Depends(get_db)):
     if body.purpose == "enroll":
-        current.require("attendance.enroll_face")
-        if not body.employee_id:
+        emp_id = body.employee_id or current.employee_id
+        if not emp_id:
             raise HTTPException(422, "employee_id is required for enrollment")
-        get_or_404(db, Employee, body.employee_id, "Employee")
-        emp_id = body.employee_id
+        if emp_id != current.employee_id:
+            current.require("attendance.enroll_face")  # enrolling someone else is an HR action
+        get_or_404(db, Employee, emp_id, "Employee")
     else:
         if not current.employee_id:
             raise HTTPException(400, "Your account is not linked to an employee profile")
@@ -251,7 +252,7 @@ def request_correction(body: CorrectionIn, current: CurrentUser = Depends(requir
     if emp.manager_id:
         approvers |= set(user_ids_for_employees(db, [emp.manager_id]))
     notify(db, approvers, f"Attendance {body.kind} request", f"{emp.full_name} requested a {body.kind} for {body.work_date}",
-           "/attendance/requests", "approval")
+           "/attendance?tab=requests", "approval")
     audit(db, current.user, "attendance.correction_request", "attendance_correction", c.id, f"{body.kind} request for {body.work_date}")
     db.commit()
     return _corr(c, company_tz(db))
@@ -310,8 +311,12 @@ def face_status(employee_id: int, current: CurrentUser = Depends(get_current), d
 
 @router.post("/face/enroll")
 @limiter.limit("10/minute")
-def enroll_face(request: Request, body: EnrollIn, current: CurrentUser = Depends(require("attendance.enroll_face")),
+def enroll_face(request: Request, body: EnrollIn, current: CurrentUser = Depends(get_current),
                 db: Session = Depends(get_db)):
+    """HR enrolls any employee; an employee may enroll themselves (live capture + their own consent)."""
+    self_enroll = body.employee_id == current.employee_id
+    if not self_enroll:
+        current.require("attendance.enroll_face")
     emp = get_or_404(db, Employee, body.employee_id, "Employee")
     if emp.status == "inactive":
         raise HTTPException(400, "Cannot enroll an inactive employee")
@@ -336,11 +341,17 @@ def enroll_face(request: Request, body: EnrollIn, current: CurrentUser = Depends
     else:
         db.add(FaceProfile(employee_id=emp.id, embedding_enc=blob, sample_count=len(frontal), consent_id=consent.id,
                            enrolled_by_id=current.id))
-    audit(db, current.user, "biometric.enroll", "employee", emp.id, f"Face profile enrolled for {emp.full_name}",
-          {"frames": live["frames"]}, ip=client_ip(request))
-    notify(db, user_ids_for_employees(db, [emp.id]), "Face profile enrolled",
-           "Your face profile for attendance was enrolled. You can revoke consent anytime from your profile.",
-           "/profile", "attendance")
+    audit(db, current.user, "biometric.enroll", "employee", emp.id,
+          f"Face profile {'self-' if self_enroll else ''}enrolled for {emp.full_name}",
+          {"frames": live["frames"], "self": self_enroll}, ip=client_ip(request))
+    if self_enroll:
+        notify(db, set(user_ids_with_permission(db, "attendance.enroll_face")) - {current.id},
+               "Employee enrolled face check-in", f"{emp.full_name} set up face verification with a live capture.",
+               f"/employees/{emp.id}", "attendance")
+    else:
+        notify(db, user_ids_for_employees(db, [emp.id]), "Face profile enrolled",
+               "Your face profile for attendance was enrolled. You can revoke consent anytime from your profile.",
+               "/profile", "attendance")
     db.commit()
     return {"enrolled": True, **live}
 

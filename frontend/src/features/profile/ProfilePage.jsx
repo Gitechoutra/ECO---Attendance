@@ -10,7 +10,7 @@ import {
 } from '../../components/ui'
 import { fmtBytes, fmtDate, fmtDateTime, titleCase } from '../../lib/format'
 import { PasswordForm } from '../auth/ChangePasswordPage'
-import { CONSENT_TEXT } from '../attendance/FaceEnrollModal'
+import FaceEnrollModal, { CONSENT_TEXT } from '../attendance/FaceEnrollModal'
 
 export default function ProfilePage() {
   const { user, employee, reload: reloadMe } = useAuth()
@@ -22,6 +22,7 @@ export default function ProfilePage() {
   const [edit, setEdit] = useState(false)
   const [revoke, setRevoke] = useState(false)
   const [signOutAll, setSignOutAll] = useState(false)
+  const [enrolling, setEnrolling] = useState(false)
   const [run, busy] = useAction(toast)
   const photo = useRef(null)
   const e = me.data
@@ -89,7 +90,12 @@ export default function ProfilePage() {
               <div className="flex-1 text-sm"><p className="font-medium">Enrolled {fmtDate(face.data.enrolled_at)}</p><p className="text-xs text-muted">Consent version {face.data.consent?.version} given {fmtDateTime(face.data.consent?.given_at)}{face.data.last_verified_at && ` · last used ${fmtDateTime(face.data.last_verified_at)}`}</p></div>
               <Button variant="danger-ghost" onClick={() => setRevoke(true)}>Revoke consent & delete</Button>
             </div>
-          ) : <p className="rounded-xl bg-surface-2 p-4 text-sm text-muted">No face template is stored for you. HR can enroll you with your consent; until then use manual attendance requests.</p>}
+          ) : (
+            <div className="flex flex-col gap-3 rounded-xl bg-surface-2 p-4 sm:flex-row sm:items-center">
+              <p className="flex-1 text-sm text-muted">No face template is stored for you. Set it up with a short live camera scan to check in with your face.</p>
+              <Button icon={ScanFace} onClick={() => setEnrolling(true)}>Set up face check-in</Button>
+            </div>
+          )}
         </Card>
       )}
       {e && (
@@ -100,6 +106,7 @@ export default function ProfilePage() {
             { name: 'postal_code', label: 'Postal code', span: 1 }, { name: 'emergency_contact_name', label: 'Emergency contact', span: 1 }, { name: 'emergency_contact_phone', label: 'Emergency phone', span: 1 }]}
           onSubmit={async (v) => { await api.put('/employees/me', v); toast.success('Profile updated'); me.reload() }} />
       )}
+      {employee && <FaceEnrollModal open={enrolling} self employee={employee} onClose={() => setEnrolling(false)} onEnrolled={() => face.reload()} />}
       <ConfirmDialog open={revoke} onClose={() => setRevoke(false)} title="Revoke biometric consent" confirmLabel="Revoke & delete" loading={busy}
         description="Your face template will be deleted immediately. You’ll need to use manual attendance requests until you re-enroll."
         onConfirm={async () => { await run(() => api.delete(`/attendance/face/${employee.id}`), { success: 'Face template deleted' }); setRevoke(false); face.reload() }} />

@@ -191,3 +191,29 @@ def test_holiday_crud(hr, employee):
     assert hr.post("/holidays", json={"date": f"{y}-01-26", "name": "Dup"}).status_code == 409
     assert employee.post("/holidays", json={"date": f"{y}-08-15", "name": "X"}).status_code == 403
     assert any(h["name"] == "Republic Day" for h in employee.get(f"/holidays?year={y}").json())
+
+
+def test_employee_can_self_enroll_but_not_others(client, employee):
+    from tests.conftest import Actor
+    other = Actor(client, "employee")
+    mine = employee.post("/attendance/challenge", json={"purpose": "enroll"})
+    assert mine.status_code == 200 and mine.json()["steps"][0] == "center"
+    assert employee.post("/attendance/challenge", json={"purpose": "enroll", "employee_id": other.employee_id}).status_code == 403
+    body = {"nonce": "x" * 20, "frames": ["data:image/jpeg;base64,AAAA"] * 6, "timestamps": [i * 300 for i in range(6)],
+            "employee_id": other.employee_id, "consent_confirmed": True}
+    assert employee.post("/attendance/face/enroll", json=body).status_code == 403
+    # own enrollment passes the permission check and fails only on the (invalid) liveness capture
+    body["employee_id"] = employee.employee_id
+    body["nonce"] = mine.json()["nonce"]
+    r = employee.post("/attendance/face/enroll", json=body)
+    assert r.status_code == 422
+
+
+def test_manual_request_notifies_hr_with_approval_link(employee, hr):
+    d = (date.today() - timedelta(days=1)).isoformat()
+    assert employee.post("/attendance/corrections", json={"kind": "manual", "work_date": d, "check_in": "09:40",
+                                                          "reason": "Camera not working"}).status_code == 201
+    notes = hr.get("/notifications").json()["items"]
+    n = next(x for x in notes if x["title"] == "Attendance manual request")
+    assert n["link"] == "/attendance?tab=requests"
+    assert hr.get("/attendance/corrections?status=pending").json()["total"] >= 1

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import clsx from 'clsx'
-import { CalendarCheck, Clock, Coffee, Download, LogIn, LogOut, Plus, ScanFace } from 'lucide-react'
+import { ArrowRight, CalendarCheck, Clock, Coffee, Download, LogIn, LogOut, Plus, ScanFace } from 'lucide-react'
 import { api, downloadFile } from '../../api/client'
 import { useApi, useAction } from '../../hooks/useApi'
 import { useAuth } from '../../context/AuthContext'
@@ -13,6 +13,7 @@ import {
 } from '../../components/ui'
 import { fmtDate, fmtMinutes, isoDate, titleCase } from '../../lib/format'
 import FaceCapture from './FaceCapture'
+import FaceEnrollModal from './FaceEnrollModal'
 
 function useMonth() {
   const n = new Date()
@@ -85,6 +86,8 @@ function CorrectionModal({ open, onClose, onDone, kind = 'correction' }) {
 
 function MyAttendance() {
   const toast = useToast()
+  const { employee } = useAuth()
+  const [enrolling, setEnrolling] = useState(false)
   const today = useApi('/attendance/today')
   const { ym, setYm, y, m } = useMonth()
   const month = useApi('/attendance/my', { year: y, month: m })
@@ -125,7 +128,13 @@ function MyAttendance() {
                 <div><p className="text-2xs font-medium uppercase tracking-wide text-faint">Worked</p><p className="num mt-1 text-lg font-semibold">{r?.check_out_at ? fmtMinutes(r.worked_minutes) : '—'}</p>{r?.break_minutes > 0 && <p className="text-2xs text-muted">{r.break_minutes} min breaks</p>}</div>
               </div>
               {!t.is_working_day && state === 'out' && <p className="mt-4 text-[13px] text-muted">Today is not a working day. You can still check in if you are working.</p>}
-              {t.face_required && !t.face_enrolled && <p className="mt-4 rounded-lg bg-warning-soft px-3 py-2 text-[13px] text-warning">Your face profile isn’t enrolled yet. Ask HR to enroll you, or submit a manual attendance request.</p>}
+              {t.face_required && !t.face_enrolled && (
+                <div className="mt-4 flex flex-col gap-3 rounded-xl border border-warning/30 bg-warning-soft p-4 sm:flex-row sm:items-center">
+                  <ScanFace className="h-5 w-5 shrink-0 text-warning" />
+                  <p className="flex-1 text-[13px] text-warning">Set up face check-in once with a quick live camera scan (about 6 seconds). Your profile photo can’t be used, because attendance needs live verification.</p>
+                  <Button size="sm" icon={ScanFace} onClick={() => setEnrolling(true)}>Set up face check-in</Button>
+                </div>
+              )}
               <div className="mt-5 flex flex-wrap gap-2">
                 {state === 'out' && <Button size="lg" icon={LogIn} onClick={() => act('check_in')} loading={busy} disabled={t.face_required && !t.face_enrolled} className="flex-1">Check in</Button>}
                 {state === 'in' && (
@@ -182,6 +191,7 @@ function MyAttendance() {
         )}
       </Modal>
       <CorrectionModal open={Boolean(corr)} kind={corr} onClose={() => setCorr(null)} onDone={refresh} />
+      <FaceEnrollModal open={enrolling} self employee={employee} onClose={() => setEnrolling(false)} onEnrolled={refresh} />
     </div>
   )
 }
@@ -263,12 +273,13 @@ function Records() {
   )
 }
 
-function Requests() {
+function Requests({ onChanged }) {
   const toast = useToast()
+  const { employee: me } = useAuth()
   const [status, setStatus] = useState('pending')
   const { data, loading, error, reload } = useApi('/attendance/corrections', { status: status || undefined, page_size: 50 })
   const [run, busy] = useAction(toast)
-  const review = async (c, approve) => { await run(() => api.post(`/attendance/corrections/${c.id}/review`, { approve }), { success: approve ? 'Approved' : 'Rejected' }); reload() }
+  const review = async (c, approve) => { await run(() => api.post(`/attendance/corrections/${c.id}/review`, { approve }), { success: approve ? 'Approved' : 'Rejected' }); reload(); onChanged?.() }
   return (
     <div className="card overflow-hidden">
       <Toolbar><Segmented value={status} onChange={setStatus} options={[{ value: 'pending', label: 'Pending' }, { value: 'approved', label: 'Approved' }, { value: 'rejected', label: 'Rejected' }, { value: '', label: 'All' }]} /></Toolbar>
@@ -280,7 +291,7 @@ function Requests() {
           { key: 'kind', header: 'Type', render: (c) => <Badge tone={c.kind === 'manual' ? 'info' : 'neutral'}>{titleCase(c.kind)}</Badge> },
           { key: 'times', header: 'Requested', render: (c) => `${c.requested_check_in || '—'} → ${c.requested_check_out || '—'}` },
           { key: 'reason', header: 'Reason', mobile: 'full', className: 'max-w-xs', render: (c) => <span className="line-clamp-2">{c.reason}</span> },
-          { key: 'a', header: '', align: 'right', render: (c) => c.status === 'pending' ? (
+          { key: 'a', header: '', align: 'right', render: (c) => c.status === 'pending' && c.employee.id === me?.id ? <Badge tone="warning">Your request · needs another approver</Badge> : c.status === 'pending' ? (
             <div className="flex justify-end gap-1.5">
               <Button size="xs" variant="secondary" disabled={busy} onClick={() => review(c, false)}>Reject</Button>
               <Button size="xs" disabled={busy} onClick={() => review(c, true)}>Approve</Button>
@@ -323,21 +334,30 @@ export default function AttendancePage() {
   const [params, setParams] = useSearchParams()
   const tab = params.get('tab') || (employee ? 'me' : 'team')
   const setTab = (t) => setParams({ tab: t })
+  const pending = useApi(can('attendance.manage') ? '/attendance/corrections' : null, { status: 'pending', page_size: 1 })
+  const pendingCount = pending.data?.total || 0
   return (
     <>
       <PageHeader title="Attendance" description="Verified check-ins, working hours and attendance requests." />
+      {pendingCount > 0 && tab !== 'requests' && (
+        <button onClick={() => setTab('requests')} className="mb-4 flex w-full items-center gap-3 rounded-xl border border-warning/30 bg-warning-soft px-4 py-3 text-left transition-colors hover:border-warning/60">
+          <Clock className="h-5 w-5 shrink-0 text-warning" />
+          <span className="flex-1 text-sm text-warning"><b>{pendingCount}</b> attendance request{pendingCount === 1 ? '' : 's'} waiting for your approval</span>
+          <span className="flex items-center gap-1 text-sm font-semibold text-warning">Review<ArrowRight className="h-4 w-4" /></span>
+        </button>
+      )}
       <Tabs className="mb-5" value={tab} onChange={setTab} tabs={[
         { value: 'me', label: 'My attendance', hidden: !employee },
         { value: 'team', label: 'Today', hidden: !can('attendance.view_all') },
         { value: 'records', label: 'Records', hidden: !can('attendance.view_all') },
         { value: 'summary', label: 'Monthly summary', hidden: !can('attendance.view_all') },
-        { value: 'requests', label: 'Requests', hidden: !can('attendance.manage') },
+        { value: 'requests', label: 'Requests', count: pendingCount || undefined, hidden: !can('attendance.manage') },
       ]} />
       {tab === 'me' && employee && <MyAttendance />}
       {tab === 'team' && can('attendance.view_all') && <TeamToday />}
       {tab === 'records' && can('attendance.view_all') && <Records />}
       {tab === 'summary' && can('attendance.view_all') && <Summary />}
-      {tab === 'requests' && can('attendance.manage') && <Requests />}
+      {tab === 'requests' && can('attendance.manage') && <Requests onChanged={() => pending.reload({ silent: true })} />}
     </>
   )
 }

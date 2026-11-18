@@ -174,7 +174,7 @@ def apply_leave(body: LeaveApplyIn, current: CurrentUser = Depends(require_emplo
     approvers.discard(current.id)
     notify(db, approvers, "New leave request",
            f"{emp.full_name} applied for {days:g} day(s) of {lt.name} ({body.start_date} → {body.end_date})",
-           "/leave/approvals", "approval")
+           "/leave?tab=approvals", "approval")
     audit(db, current.user, "leave.apply", "leave_request", r.id, f"Applied {lt.code} {days:g} day(s)")
     db.commit()
     db.refresh(r)
